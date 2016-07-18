@@ -1,35 +1,46 @@
 ---
-title: "Classe Prediction Model"
+title: "Classe Prediction Model based on Random Forest"
 author: "eizaguirre"
 date: "July 17, 2016"
 ---
 
-This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+##Objective
+The objective of this model is to predict the manner in which a population of individuals exercised at a specific point in time. In order to accomplish this, We'll try to predict the outcome of the variable named "classe". This is a factor variable with 5 possible outcomes.
 
-When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+We'll use a model based on the random forest learning method for classification since we are trying to predict a factor variable with 5 possible outcomes. This model is highly accurate and readability is not that important in this particular case.
 
-```{r}
-library(rpart);library(Hmisc);
+First, we'll start by loading the randomForest package and importing the training and test datasets into R.
+
+```{r message=FALSE}
+library(randomForest);
 training <- read.csv(file="C:/Users/eizaguirre/GIT/PracticalMachineLearning/Project Files/pml-training.csv", stringsAsFactors=T)
 testing <- read.csv(file="C:/Users/eizaguirre/GIT/PracticalMachineLearning/Project Files/pml-testing.csv", stringsAsFactors=T)
 ```
 
+Now, we'll perform cross-validation in a couple of selected variables from the training dataset in order to identify problems with colinearity. These variables were selected arbitrarily based on the fact that they do not contain NA values. So basically, our strategy to manage NA values is to remove variables with a high number of NA values. 
 ```{r}
-glmfit <- glm(classe ~ roll_belt+pitch_belt+yaw_belt+total_accel_belt+gyros_belt_x+magnet_belt_x+magnet_belt_y+magnet_belt_z+gyros_belt_y+gyros_belt_z+accel_arm_x+accel_arm_y+accel_arm_z+magnet_arm_x+magnet_arm_y+magnet_arm_z+roll_arm+pitch_arm+yaw_arm+total_accel_arm+roll_dumbbell+pitch_dumbbell+yaw_dumbbell+total_accel_dumbbell+gyros_forearm_x+gyros_forearm_y+gyros_forearm_z+accel_forearm_x+accel_forearm_y+accel_forearm_z+magnet_forearm_x+magnet_forearm_y+magnet_forearm_z, data=training, family="binomial")
-
-summary(glmfit)
-
-select <- c('roll_belt','pitch_belt','yaw_belt','total_accel_belt','gyros_belt_x','gyros_belt_y','gyros_belt_z','accel_arm_x','accel_arm_y','accel_arm_z','magnet_arm_y','magnet_arm_z','roll_dumbbell','pitch_dumbbell','yaw_dumbbell','yaw_arm','roll_arm','magnet_belt_y','magnet_belt_z','total_accel_dumbbell','accel_forearm_x', 'accel_forearm_y','magnet_forearm_x','magnet_forearm_y','magnet_forearm_z')
+select <- c('roll_belt','pitch_belt','yaw_belt','total_accel_belt','magnet_belt_x','magnet_belt_y','magnet_belt_z','gyros_belt_x','gyros_belt_y','gyros_belt_z','accel_arm_x','accel_arm_y','accel_arm_z','magnet_arm_x','magnet_arm_y','magnet_arm_z','roll_arm','pitch_arm','yaw_arm','total_accel_arm','roll_dumbbell','pitch_dumbbell','yaw_dumbbell','total_accel_dumbbell','gyros_forearm_x','gyros_forearm_y','gyros_forearm_z','accel_forearm_x','accel_forearm_y','accel_forearm_z','magnet_forearm_x','magnet_forearm_y','magnet_forearm_z')
 
 cor(training[,select])
- 
 
-ctreefit <- rpart(classe ~ roll_belt+pitch_belt+gyros_belt_x+magnet_belt_x+magnet_belt_y+magnet_belt_z+gyros_belt_z+accel_arm_y+magnet_arm_x+roll_arm+pitch_arm+yaw_arm+pitch_dumbbell+yaw_dumbbell+total_accel_dumbbell+gyros_forearm_x+accel_forearm_y+magnet_forearm_x+magnet_forearm_y+magnet_forearm_z, data=training, method="class")
+```
+Based on this results, we'll remove the variables total_accel_belt, yaw_belt, accel_arm_x, magnet_arm_y, magnet_arm_z due to high colinearity with other variables.
 
-plot(ctreefit, uniform=TRUE, main="Classification Tree Classe Prediction")
-text(ctreefit, cex=.6)
+Now, We'll create a logistic model to identify variables with low significance in relation to a our classe variable. 
+```{r}
+glmfit <- glm(classe ~ roll_belt+pitch_belt+gyros_belt_x+magnet_belt_x+magnet_belt_y+magnet_belt_z+gyros_belt_y+gyros_belt_z+accel_arm_y+accel_arm_z+magnet_arm_x+roll_arm+pitch_arm+yaw_arm+total_accel_arm+roll_dumbbell+pitch_dumbbell+yaw_dumbbell+total_accel_dumbbell+gyros_forearm_x+gyros_forearm_y+gyros_forearm_z+accel_forearm_x+accel_forearm_y+accel_forearm_z+magnet_forearm_x+magnet_forearm_y+magnet_forearm_z, data=training, family="binomial")
 
+summary(glmfit)
+```
+After this, we'll remove the following variables because of their low significante in relation to the predicted variable: gyros_belt_y, accel_arm_z, roll_dumbell, gyros_forearm_y, gyros_forearm_z, accel_forearm_x, accel_forearm_z
 
-prediction <- predict(ctreefit, testing, type="class")
+We'll proceed with the creation of a Random Forest model using the variables selected based on the cross validation tests of the previous steps.
+```{r}
+randomfit <- randomForest(classe ~ roll_belt+pitch_belt+gyros_belt_x+magnet_belt_x+magnet_belt_y+magnet_belt_z+gyros_belt_z+accel_arm_y+magnet_arm_x+roll_arm+pitch_arm+yaw_arm+total_accel_arm+pitch_dumbbell+yaw_dumbbell+total_accel_dumbbell+gyros_forearm_x+accel_forearm_y+magnet_forearm_x+magnet_forearm_y+magnet_forearm_z, data=training)
+```
+Finally, we'll look at our predictions in the test set. We'll notice that the values provided by the random forest are highly accurate in relationship with the values expected in the prediction quiz.
+
+```{r}
+prediction <- predict(randomfit, testing, type="class")
 prediction
 ```
