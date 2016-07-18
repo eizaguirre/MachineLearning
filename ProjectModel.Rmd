@@ -9,6 +9,27 @@ This is an R Markdown document. Markdown is a simple formatting syntax for autho
 When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
 
 ```{r}
-training <- read.csv("C:/Users/eizaguirre/GIT/PracticalMachineLearning/Project Files/pml-training.csv")
+library(rpart);library(Hmisc);
+training <- read.csv(file="C:/Users/eizaguirre/GIT/PracticalMachineLearning/Project Files/pml-training.csv", stringsAsFactors=T)
+testing <- read.csv(file="C:/Users/eizaguirre/GIT/PracticalMachineLearning/Project Files/pml-testing.csv", stringsAsFactors=T)
 ```
 
+```{r}
+glmfit <- glm(classe ~ roll_belt+pitch_belt+yaw_belt+total_accel_belt+gyros_belt_x+magnet_belt_x+magnet_belt_y+magnet_belt_z+gyros_belt_y+gyros_belt_z+accel_arm_x+accel_arm_y+accel_arm_z+magnet_arm_x+magnet_arm_y+magnet_arm_z+roll_arm+pitch_arm+yaw_arm+total_accel_arm+roll_dumbbell+pitch_dumbbell+yaw_dumbbell+total_accel_dumbbell+gyros_forearm_x+gyros_forearm_y+gyros_forearm_z+accel_forearm_x+accel_forearm_y+accel_forearm_z+magnet_forearm_x+magnet_forearm_y+magnet_forearm_z, data=training, family="binomial")
+
+summary(glmfit)
+
+select <- c('roll_belt','pitch_belt','yaw_belt','total_accel_belt','gyros_belt_x','gyros_belt_y','gyros_belt_z','accel_arm_x','accel_arm_y','accel_arm_z','magnet_arm_y','magnet_arm_z','roll_dumbbell','pitch_dumbbell','yaw_dumbbell','yaw_arm','roll_arm','magnet_belt_y','magnet_belt_z','total_accel_dumbbell','accel_forearm_x', 'accel_forearm_y','magnet_forearm_x','magnet_forearm_y','magnet_forearm_z')
+
+cor(training[,select])
+ 
+
+ctreefit <- rpart(classe ~ roll_belt+pitch_belt+gyros_belt_x+magnet_belt_x+magnet_belt_y+magnet_belt_z+gyros_belt_z+accel_arm_y+magnet_arm_x+roll_arm+pitch_arm+yaw_arm+pitch_dumbbell+yaw_dumbbell+total_accel_dumbbell+gyros_forearm_x+accel_forearm_y+magnet_forearm_x+magnet_forearm_y+magnet_forearm_z, data=training, method="class")
+
+plot(ctreefit, uniform=TRUE, main="Classification Tree Classe Prediction")
+text(ctreefit, cex=.6)
+
+
+prediction <- predict(ctreefit, testing, type="class")
+prediction
+```
